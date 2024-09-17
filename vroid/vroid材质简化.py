@@ -49,17 +49,34 @@ def remove_invalid_and_reposition_nodes(material):
         for node in nodes_to_remove:
             material.node_tree.nodes.remove(node)
         
-        # 重新定位剩余节点
-        remaining_nodes = [node for node in material.node_tree.nodes if node.type == 'TEX_IMAGE']
+        # 分组节点
+        connected_nodes = set()
+        unconnected_nodes = []
         
-        # 水平排列节点
+        for node in material.node_tree.nodes:
+            if any(input.is_linked for input in node.inputs):
+                connected_nodes.add(node)
+            else:
+                unconnected_nodes.append(node)
+        
+        # 重新定位节点
         x_offset = 0
-        y_offset = 0
         spacing = 300  # 根据需要调整间距
-
-        for node in remaining_nodes:
+        y_connected = 0
+        y_unconnected = -spacing  # 在另一行显示无连线节点
+        
+        # 水平排列有连线的节点
+        for node in connected_nodes:
             node.location.x = x_offset
-            node.location.y = y_offset
+            node.location.y = y_connected
+            x_offset += spacing
+        
+        x_offset = 0  # 重置X偏移量
+        
+        # 水平排列没有连线的节点
+        for node in unconnected_nodes:
+            node.location.x = x_offset
+            node.location.y = y_unconnected
             x_offset += spacing
         
         # 添加Principled BSDF和Material Output节点
@@ -67,11 +84,11 @@ def remove_invalid_and_reposition_nodes(material):
         
         # 创建Principled BSDF节点
         bsdf_node = node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
-        bsdf_node.location = (x_offset, y_offset)  # 将其放在最后一个图像节点之后
+        bsdf_node.location = (x_offset, y_connected)  # 将其放在有连线的节点之后
         
         # 创建Material Output节点
         output_node = node_tree.nodes.new(type='ShaderNodeOutputMaterial')
-        output_node.location = (x_offset + spacing, y_offset)
+        output_node.location = (x_offset + spacing, y_connected)
         
         # 将Principled BSDF节点连接到Material Output节点
         bsdf_output = bsdf_node.outputs['BSDF']
@@ -98,7 +115,7 @@ def remove_invalid_and_reposition_nodes(material):
                 if normal_socket:
                     # 使用Normal Map节点将图像纹理转换为法线向量
                     normal_map_node = node_tree.nodes.new(type='ShaderNodeNormalMap')
-                    normal_map_node.location = (x_offset, y_offset + spacing)
+                    normal_map_node.location = (x_offset, y_connected + spacing)
                     
                     # 将图像纹理连接到Normal Map节点
                     node_tree.links.new(node.outputs['Color'], normal_map_node.inputs['Color'])
