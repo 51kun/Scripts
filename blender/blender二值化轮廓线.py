@@ -13,7 +13,7 @@ import os
 
 # 参数配置
 alpha_threshold = 30
-border_thickness = 2  # 描边的宽度
+border_thickness = 1  # 描边的宽度
 
 def add_border(image):
     alpha_channel = image[:, :, 3]
